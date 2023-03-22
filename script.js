@@ -1,81 +1,121 @@
-// Calculator Variables
-const calculator = document.querySelector('.calculator');
-const keys = calculator.querySelector('.calculator__keys');
-const display = document.querySelector('#screen');
+const numberButtons = document.querySelectorAll('[data-number]');
+const operationButtons = document.querySelectorAll('[data-operation]');
+const equalButton = document.querySelector('[data-equals]');
+const deleteButton = document.querySelector('[data-delete]');
+const allClearButton = document.querySelector('[data-clear]');
+const previousOperandTextElement = document.querySelector('[data-previous-operand]');
+const currentOperandTextElement = document.querySelector('[data-current-operand]');
 
-const calculate = (num1, operator, num2) => {
-    let result = '';
-
-    if (operator === 'add') {
-        result = parseFloat(num1) + parseFloat(num2);
-    } else if (operator === 'subtract') {
-        result = parseFloat(num1) - parseFloat(num2);
-    } else if (operator === 'multiply') {
-        result = parseFloat(num1) * parseFloat(num2);
-    } else if (operator === 'divide') {
-        result = parseFloat(num1) / parseFloat(num2);
+class Calculator {
+    constructor(previousOperandTextElement, currentOperandTextElement) {
+        this.previousOperandTextElement = previousOperandTextElement;
+        this.currentOperandTextElement = currentOperandTextElement;
+        this.clear();
     }
 
-    return result;
+    clear() {
+        this.currentOperand = '';
+        this.previousOperand = '';
+        this.operation = undefined;
+    }
+
+    delete() {
+        this.currentOperand = this.currentOperand.toString().slice(0, -1);
+    }
+
+    appendNumber(number) {
+        if (number === '.' && this.currentOperand.includes('.')) return;
+        this.currentOperand = this.currentOperand.toString() + number.toString();
+    }
+
+    chooseOperation(operation) {
+        if (this.currentOperand === '') return;
+        if (this.previousOperand !== '') {
+            this.compute();
+        }
+        this.operation = operation;
+        this.previousOperand = this.currentOperand;
+        this.currentOperand = '';
+    }
+
+    compute() {
+        let computation;
+        const prev = parseFloat(this.previousOperand);
+        const current = parseFloat(this.currentOperand);
+        if (isNaN(prev) || isNaN(current)) return;
+        switch (this.operation) {
+            case '+':
+                computation = prev + current;
+                break;
+            case '-':
+                computation = prev - current;
+                break;
+            case '*':
+                computation = prev * current;
+                break;
+            case '÷':
+                computation = prev / current;
+                break;
+            default:
+                return;
+        }
+        this.currentOperand = computation;
+        this.operation = undefined;
+        this.previousOperand = '';
+    }
+
+    getDisplayNumber(number) {
+        const stringNumber = number.toString();
+        const integerDigits = parseFloat(stringNumber.split('.')[0]);
+        const decimalDigits = stringNumber.split('.')[1];
+        let integerDisplay;
+        if (isNaN(integerDigits)) {
+            integerDisplay = '';
+        } else {
+            integerDisplay = integerDigits.toLocaleString('en', { maximumFractionDigits: 0 });
+        }
+        if (decimalDigits != null) {
+            return `${integerDisplay}.${decimalDigits}`;
+        } else {
+            return integerDisplay;
+        }
+    }
+
+    updateDisplay() {
+        this.currentOperandTextElement.innerText = this.getDisplayNumber(this.currentOperand);
+        if (this.operation != null) {
+            this.previousOperandTextElement.innerText = `${this.previousOperand} ${this.operation}`;
+        }
+    }
 }
 
+const calculator = new Calculator(previousOperandTextElement, currentOperandTextElement);
 
-keys.addEventListener('click', e => {
-    if (e.target.matches('button')) {
-        const key = e.target;
-        const action = key.dataset.action;
-        const keyContent = key.textContent;
-        const displayedNum = display.textContent;
-        const previousKeyType = calculator.dataset.previousKeyType
+numberButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        calculator.appendNumber(button.innerText);
+        calculator.updateDisplay();
+    })
+});
 
-        Array.from(key.parentNode.children).forEach(k => k.classList.remove('is-selected'))
+operationButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        calculator.chooseOperation(button.innerText);
+        calculator.updateDisplay();
+    })
+});
 
-        if (!action) {
-            if (displayedNum === '0' || previousKeyType === 'operator') {
-                display.textContent = keyContent;
-            } else {
-                display.textContent = displayedNum + keyContent;
-            }
-        }
+equalButton.addEventListener('click', button => {
+    calculator.compute();
+    calculator.updateDisplay();
+});
 
-        if (action === 'add' ||
-            action === 'subtract' ||
-            action === 'multiply' ||
-            action === 'divide'
-        ) {
-            const firstValue = calculator.dataset.firstValue
-            const operator = calculator.dataset.operator
-            const secondValue = displayedNum
+allClearButton.addEventListener('click', button => {
+    calculator.clear();
+    calculator.updateDisplay();
+});
 
-            if (firstValue && operator && previousKeyType !== 'operator' && previousKeyType !== 'calculate') {
-                display.textContent = calculate(firstValue, operator, secondValue)
-            }
-
-            key.classList.add('is-selected');
-            calculator.dataset.previousKeyType = 'operator'
-            calculator.dataset.firstValue = displayedNum;
-            calculator.dataset.operator = action;
-        }
-
-        if (action === 'decimal' && !displayedNum.includes('.')) {
-            display.textContent = displayedNum + '.';
-        }
-
-        if (action === 'clear') {
-            display.textContent = '0';
-            calculator.dataset.previousKeyType = 'clear';
-            calculator.dataset.firstValue = '';
-            calculator.dataset.operator = '';
-        }
-
-        if (action === 'calculate') {
-            const firstValue = calculator.dataset.firstValue
-            const operator = calculator.dataset.operator
-            const secondValue = displayedNum
-            display.textContent = calculate(firstValue, operator, secondValue);
-        }
-        if (action === 'backspace' && displayedNum.length > 1) {
-            display.textContent = displayedNum.slice(0, -1);
-        }
-    }
+deleteButton.addEventListener('click', button => {
+    calculator.delete();
+    calculator.updateDisplay();
 });
