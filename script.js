@@ -20,6 +20,7 @@ class Calculator {
     }
 
     delete() {
+        if (this.currentOperand === '') return;
         this.currentOperand = this.currentOperand.toString().slice(0, -1);
     }
 
